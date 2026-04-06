@@ -166,7 +166,7 @@ python distortion_correction.py \
 
 ![왜곡 교정 비교](results/comparison.jpg)
 
-![유튜브 영상](https://www.youtube.com/watch?v=FB89C6G3c58&feature=youtu.be)
+유튜브 시연 영상 링크 : https://www.youtube.com/watch?v=FB89C6G3c58&feature=youtu.be
 
 *좌: 원본 (왜곡됨) | 우: 왜곡 교정됨*
 ![frame_01000](https://github.com/user-attachments/assets/c5660bf6-8951-4e50-aa8b-b23933ba6324)
