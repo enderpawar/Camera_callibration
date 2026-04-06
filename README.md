@@ -43,12 +43,14 @@ python gui.py
 앱을 실행하면 세 개의 탭이 열립니다.
 
 ### 탭 1 — 체스보드 생성기
+<img width="1527" height="1271" alt="image" src="https://github.com/user-attachments/assets/981fa3bf-588d-44ab-b4e2-e27bea2a3814" />
 
 사각형 수, 사각형 크기(mm), DPI를 설정한 후 **생성 및 미리보기**를 클릭합니다.  
 체스보드 이미지가 PNG로 저장되며 앱 내에서 미리볼 수 있습니다.  
 **100% 크기**로 인쇄하여 평평한 딱딱한 표면에 부착하십시오.
 
 ### 탭 2 — 카메라 보정
+<img width="1531" height="1276" alt="image" src="https://github.com/user-attachments/assets/cf51b58e-434e-4cad-b714-2252da9faccd" />
 
 1. **파일 선택…** 클릭하여 체스보드 영상 파일 선택
 2. 내부 코너 수(열 × 행), 사각형 크기(mm), 프레임 간격 설정
@@ -59,6 +61,7 @@ python gui.py
 > **팁:** 긴 4K 영상을 빠르게 처리하려면 **프레임 간격**을 높게 설정하십시오 (예: 15~30).
 
 ### 탭 3 — 왜곡 교정
+<img width="1519" height="1259" alt="image" src="https://github.com/user-attachments/assets/2f3d114c-323f-4084-a471-4fc019702bd6" />
 
 1. **영상** 또는 **이미지** 모드 선택
 2. **파일 선택…** 클릭하여 입력 파일 선택
@@ -72,7 +75,6 @@ python gui.py
 ## 사용법 — 명령줄
 
 ### 1단계 — 캘리브레이션 타겟 출력
-<img width="1527" height="1271" alt="image" src="https://github.com/user-attachments/assets/981fa3bf-588d-44ab-b4e2-e27bea2a3814" />
 
 ```bash
 python generate_chessboard.py --cols 10 --rows 7 --square_mm 25 --out chessboard.png
@@ -82,7 +84,6 @@ python generate_chessboard.py --cols 10 --rows 7 --square_mm 25 --out chessboard
 실제 인쇄된 사각형의 크기를 자로 측정하고 값(mm)을 기록해 두십시오.
 
 ### 2단계 — 캘리브레이션 영상 촬영
-<img width="1531" height="1276" alt="image" src="https://github.com/user-attachments/assets/cf51b58e-434e-4cad-b714-2252da9faccd" />
 
 카메라로 체스보드를 촬영합니다:
 - 다양한 각도, 거리, 기울기로 촬영
@@ -91,7 +92,6 @@ python generate_chessboard.py --cols 10 --rows 7 --square_mm 25 --out chessboard
 - 영상 파일을 `data/` 폴더에 저장
 
 ### 3단계 — 카메라 보정 실행
-<img width="1519" height="1259" alt="image" src="https://github.com/user-attachments/assets/2f3d114c-323f-4084-a471-4fc019702bd6" />
 
 ```bash
 python camera_calibration.py \
@@ -167,6 +167,13 @@ python distortion_correction.py \
 ![왜곡 교정 비교](results/comparison.jpg)
 
 *좌: 원본 (왜곡됨) | 우: 왜곡 교정됨*
+![frame_01000](https://github.com/user-attachments/assets/c5660bf6-8951-4e50-aa8b-b23933ba6324)
+![frame_00885](https://github.com/user-attachments/assets/3c5d65f1-42da-4f06-b796-a31455a6f262)
+![frame_00260](https://github.com/user-attachments/assets/445448e7-9f2d-4914-a5d8-ab98d3f9f3fc)
+![frame_00255](https://github.com/user-attachments/assets/13c73761-4d36-41d1-a545-a3ab8542a227)
+![frame_00135](https://github.com/user-attachments/assets/06d63344-c3f6-458e-a8c6-5a0a631062e6)
+![frame_00100](https://github.com/user-attachments/assets/48f37d85-5d6b-4937-8842-797d08aa98b0)
+![frame_00060](https://github.com/user-attachments/assets/c5ddd30e-2c46-480f-a5f1-e428e2f37be2)
 
 ---
 
