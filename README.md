@@ -72,6 +72,7 @@ python gui.py
 ## 사용법 — 명령줄
 
 ### 1단계 — 캘리브레이션 타겟 출력
+<img width="1527" height="1271" alt="image" src="https://github.com/user-attachments/assets/981fa3bf-588d-44ab-b4e2-e27bea2a3814" />
 
 ```bash
 python generate_chessboard.py --cols 10 --rows 7 --square_mm 25 --out chessboard.png
@@ -81,6 +82,7 @@ python generate_chessboard.py --cols 10 --rows 7 --square_mm 25 --out chessboard
 실제 인쇄된 사각형의 크기를 자로 측정하고 값(mm)을 기록해 두십시오.
 
 ### 2단계 — 캘리브레이션 영상 촬영
+<img width="1531" height="1276" alt="image" src="https://github.com/user-attachments/assets/cf51b58e-434e-4cad-b714-2252da9faccd" />
 
 카메라로 체스보드를 촬영합니다:
 - 다양한 각도, 거리, 기울기로 촬영
@@ -89,6 +91,7 @@ python generate_chessboard.py --cols 10 --rows 7 --square_mm 25 --out chessboard
 - 영상 파일을 `data/` 폴더에 저장
 
 ### 3단계 — 카메라 보정 실행
+<img width="1519" height="1259" alt="image" src="https://github.com/user-attachments/assets/2f3d114c-323f-4084-a471-4fc019702bd6" />
 
 ```bash
 python camera_calibration.py \
