@@ -175,7 +175,6 @@ python distortion_correction.py \
 ![frame_00860](https://github.com/user-attachments/assets/3464ce5b-8203-4edb-abef-a51648a24538)
 ![frame_00810](https://github.com/user-attachments/assets/9c995277-1c3c-46e2-9eb0-c20dd4bba890)
 ![frame_00470](https://github.com/user-attachments/assets/7cbc56d8-0f41-48b4-8517-1c5b129a2e46)
-![frame_00445](https://github.com/user-attachments/assets/5f1933eb-99f5-4629-bc8e-6a038378e340)
 ![frame_00425](https://github.com/user-attachments/assets/7b26f5d7-2b6a-48fd-b281-ac85d70fd58e)
 ![frame_00330](https://github.com/user-attachments/assets/ef77b345-a2b7-4618-a52e-aafe2c523093)
 ![frame_00325](https://github.com/user-attachments/assets/67d82d8c-a3d7-4acc-89f3-6a784ee391aa)
