@@ -169,8 +169,10 @@ def calibrate(args):
     # -----------------------------------------------------------------------
     print(f"\n[INFO] Running cv2.calibrateCamera() on {detect_cnt} frames …")
 
+    # CALIB_FIX_K3: k3를 0으로 고정 → 고차 방사형 왜곡 계수가 노이즈를 과적합하는 것을 방지
     rms, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(
-        obj_points, img_points, img_size, None, None
+        obj_points, img_points, img_size, None, None,
+        flags=cv2.CALIB_FIX_K3
     )
 
     fx = camera_matrix[0, 0]
