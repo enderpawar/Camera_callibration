@@ -7,7 +7,7 @@ Usage:
     python gui.py
 
 Tabs:
-  1. Chessboard Generator  — create and preview a printable calibration target
+  1. Webcam Recorder       — 웹캠으로 fisheye 왜곡 영상 실시간 녹화 후 저장
   2. Camera Calibration    — detect corners, compute intrinsics, view results
   3. Distortion Correction — apply calibration to a video or image
 
@@ -187,133 +187,327 @@ class ResultTable(ctk.CTkFrame):
 
 # ── Tab 1: Chessboard Generator ───────────────────────────────────────────────
 
-class ChessboardTab(ctk.CTkFrame):
+class WebcamRecorderTab(ctk.CTkFrame):
+    """Tab 1: 웹캠 실시간 fisheye 왜곡 적용 및 영상 녹화."""
 
-    def __init__(self, master):
+    def __init__(self, master, calib_tab=None):
         super().__init__(master, fg_color="transparent")
+        # 스레드 제어
+        self._stop_flag       = threading.Event()
+        self._thread          = None
+        self._running         = False
+        # 녹화 상태
+        self._recording       = False
+        self._writer          = None
+        self._writer_lock     = threading.Lock()
+        # 왜곡 맵 캐시
+        self._dist_cache      = {}
+        # 미리보기 큐 포화 방지
+        self._preview_pending = False
+        # 탭2 참조 (녹화 완료 시 경로 자동 입력)
+        self._calib_tab       = calib_tab
         self._build()
+
+    # ── UI ────────────────────────────────────────────────────────────────────
 
     def _build(self):
         # ── Controls ──────────────────────────────────────────────────────────
         ctrl = ctk.CTkFrame(self, corner_radius=12)
         ctrl.pack(fill="x", padx=20, pady=(20, 10))
 
-        ctk.CTkLabel(ctrl, text="Chessboard Generator",
-                     font=("Segoe UI", 18, "bold")).grid(
-            row=0, column=0, columnspan=4, padx=20, pady=(16, 10), sticky="w")
+        ctk.CTkLabel(ctrl, text="웹캠 왜곡 영상 녹화",
+                     font=("Segoe UI", 18, "bold")).pack(
+            anchor="w", padx=20, pady=(16, 8))
 
-        params = [
-            ("Squares (cols)", "10"),
-            ("Squares (rows)", "7"),
-            ("Square size (mm)", "25"),
-            ("DPI", "300"),
-        ]
-        self._pvars = []
-        for i, (lbl, val) in enumerate(params):
-            ctk.CTkLabel(ctrl, text=lbl, text_color=TEXT_DIM).grid(
-                row=1, column=i * 2, padx=(20 if i == 0 else 10, 4), pady=10, sticky="e")
-            var = ctk.StringVar(value=val)
-            ctk.CTkEntry(ctrl, textvariable=var, width=75).grid(
-                row=1, column=i * 2 + 1, padx=(0, 10), pady=10)
-            self._pvars.append(var)
+        # 카메라 인덱스 + k1 슬라이더
+        param_row = ctk.CTkFrame(ctrl, fg_color="transparent")
+        param_row.pack(fill="x", padx=20, pady=4)
 
-        self._out_var = ctk.StringVar(value="chessboard.png")
-        ctk.CTkLabel(ctrl, text="Output file", text_color=TEXT_DIM).grid(
-            row=2, column=0, padx=(20, 4), pady=(0, 14), sticky="e")
-        ctk.CTkEntry(ctrl, textvariable=self._out_var, width=300).grid(
-            row=2, column=1, columnspan=5, padx=(0, 10), pady=(0, 14), sticky="w")
+        ctk.CTkLabel(param_row, text="Camera index",
+                     text_color=TEXT_DIM, width=110, anchor="w").pack(side="left")
+        self._cam_idx_var = ctk.StringVar(value="0")
+        ctk.CTkEntry(param_row, textvariable=self._cam_idx_var,
+                     width=55).pack(side="left", padx=(0, 28))
 
-        ctk.CTkButton(ctrl, text="Generate & Preview",
-                      command=self._run, width=180).grid(
-            row=2, column=6, padx=20, pady=(0, 14))
+        ctk.CTkLabel(param_row, text="k1 (barrel/fisheye)",
+                     text_color=TEXT_DIM, width=150, anchor="w").pack(side="left")
+        self._k1_var = ctk.DoubleVar(value=0.5)
+        self._k1_lbl = ctk.CTkLabel(param_row, text="0.50", width=48)
+        ctk.CTkSlider(
+            param_row, from_=0.0, to=2.0, number_of_steps=40,
+            variable=self._k1_var,
+            command=lambda v: (
+                self._k1_lbl.configure(text=f"{v:.2f}"),
+                self._invalidate_dist_cache()
+            )
+        ).pack(side="left", padx=8)
+        self._k1_lbl.pack(side="left")
 
-        # ── Preview ───────────────────────────────────────────────────────────
+        # 출력 경로
+        out_row = ctk.CTkFrame(ctrl, fg_color="transparent")
+        out_row.pack(fill="x", padx=20, pady=4)
+        ctk.CTkLabel(out_row, text="Output .mp4",
+                     text_color=TEXT_DIM, width=110, anchor="w").pack(side="left")
+        self._out_var = ctk.StringVar(value="recordings/distorted.mp4")
+        ctk.CTkEntry(out_row, textvariable=self._out_var,
+                     width=380).pack(side="left", padx=(0, 6))
+        ctk.CTkButton(out_row, text="Browse…", width=90,
+                      command=self._browse_output).pack(side="left")
+
+        # 버튼 행
+        btn_row = ctk.CTkFrame(ctrl, fg_color="transparent")
+        btn_row.pack(fill="x", padx=20, pady=(8, 14))
+
+        self._start_btn = ctk.CTkButton(
+            btn_row, text="▶  미리보기 시작",
+            command=self._start_preview, width=160)
+        self._start_btn.pack(side="left")
+
+        self._rec_btn = ctk.CTkButton(
+            btn_row, text="●  녹화 시작",
+            command=self._start_recording, width=130,
+            fg_color="#7a1f1f", state="disabled")
+        self._rec_btn.pack(side="left", padx=10)
+
+        self._stop_btn = ctk.CTkButton(
+            btn_row, text="■  중지",
+            command=self._stop_preview, width=100,
+            fg_color="#aa3333", state="disabled")
+        self._stop_btn.pack(side="left")
+
+        self._fps_lbl = ctk.CTkLabel(
+            btn_row, text="FPS: --", text_color=TEXT_DIM, width=80)
+        self._fps_lbl.pack(side="left", padx=16)
+
+        self._rec_indicator = ctk.CTkLabel(
+            btn_row, text="", text_color="#ff5555", width=100)
+        self._rec_indicator.pack(side="left")
+
+        # ── 실시간 미리보기 ────────────────────────────────────────────────────
         prev_frame = ctk.CTkFrame(self, corner_radius=12)
-        prev_frame.pack(fill="both", expand=True, padx=20, pady=(0, 20))
-        ctk.CTkLabel(prev_frame, text="Preview",
+        prev_frame.pack(fill="both", expand=True, padx=20, pady=(0, 10))
+        ctk.CTkLabel(prev_frame, text="Live Preview (왜곡 적용)",
                      font=("Segoe UI", 13, "bold"),
                      text_color=TEXT_DIM).pack(anchor="w", padx=16, pady=(10, 4))
-
-        self._preview_lbl = ctk.CTkLabel(prev_frame, text="Generate a chessboard to see the preview.",
-                                         text_color=TEXT_DIM)
+        self._preview_lbl = ctk.CTkLabel(
+            prev_frame,
+            text="미리보기 시작 버튼을 눌러 웹캠을 연결하세요.",
+            text_color=TEXT_DIM)
         self._preview_lbl.pack(expand=True)
 
-        self._status = ctk.CTkLabel(self, text="", text_color="#aaddaa")
-        self._status.pack(pady=(0, 8))
+        # ── Log ───────────────────────────────────────────────────────────────
+        log_frame = ctk.CTkFrame(self, corner_radius=12)
+        log_frame.pack(fill="x", padx=20, pady=(0, 20))
+        ctk.CTkLabel(log_frame, text="Log",
+                     font=("Segoe UI", 13, "bold"),
+                     text_color=TEXT_DIM).pack(anchor="w", padx=16, pady=(10, 4))
+        self._log = LogBox(log_frame, height=110)
+        self._log.pack(fill="x", padx=12, pady=(0, 12))
 
-    def _run(self):
+    def _browse_output(self):
+        path = filedialog.asksaveasfilename(
+            defaultextension=".mp4",
+            filetypes=[("MP4 video", "*.mp4"), ("All files", "*.*")],
+            initialfile="distorted.mp4")
+        if path:
+            self._out_var.set(path)
+
+    # ── 왜곡 맵 ──────────────────────────────────────────────────────────────
+
+    def _build_distortion_map(self, h: int, w: int, k1: float):
+        """해상도·k1이 동일하면 캐시 반환, 아니면 재생성."""
+        cache = self._dist_cache
+        if (cache.get("h") == h and cache.get("w") == w and
+                abs(cache.get("k1", -1) - k1) < 1e-6):
+            return cache["map_x"], cache["map_y"]
+
+        cx, cy = w / 2.0, h / 2.0
+        f = max(w, h) * 0.7
+        ys, xs = np.mgrid[0:h, 0:w]
+        xd = (xs - cx) / f
+        yd = (ys - cy) / f
+        r2 = xd ** 2 + yd ** 2
+        factor = 1.0 / (1.0 + k1 * r2)   # k1 > 0 → barrel / fisheye
+        map_x = (xd * factor * f + cx).astype(np.float32)
+        map_y = (yd * factor * f + cy).astype(np.float32)
+        self._dist_cache = {"h": h, "w": w, "k1": k1,
+                            "map_x": map_x, "map_y": map_y}
+        return map_x, map_y
+
+    def _invalidate_dist_cache(self):
+        self._dist_cache = {}
+
+    # ── 제어 메서드 ───────────────────────────────────────────────────────────
+
+    def _start_preview(self):
+        if self._running:
+            return
         try:
-            cols       = int(self._pvars[0].get())
-            rows       = int(self._pvars[1].get())
-            square_mm  = float(self._pvars[2].get())
-            dpi        = int(self._pvars[3].get())
-            out_path   = self._out_var.get().strip() or "chessboard.png"
-        except ValueError as e:
-            messagebox.showerror("Input Error", str(e))
+            cam_idx = int(self._cam_idx_var.get())
+        except ValueError:
+            messagebox.showerror("입력 오류", "Camera index는 정수여야 합니다.")
             return
 
+        out_path = self._out_var.get().strip() or "recordings/distorted.mp4"
+
+        self._running = True
+        self._stop_flag = threading.Event()
+        self._dist_cache = {}
+
+        self._start_btn.configure(state="disabled")
+        self._stop_btn.configure(state="normal")
+        self._rec_btn.configure(state="normal")
+        self._log.log(f"[INFO] 미리보기 시작 — 카메라 인덱스: {cam_idx}")
+
+        self._thread = threading.Thread(
+            target=self._webcam_loop,
+            args=(cam_idx, out_path),
+            daemon=True
+        )
+        self._thread.start()
+
+    def _start_recording(self):
+        if not self._running or self._recording:
+            return
+
+        cache = self._dist_cache
+        if not cache:
+            self._log.log("[WARN] 첫 프레임을 기다리는 중… 잠시 후 다시 시도하세요.")
+            return
+
+        w, h = cache.get("w", 640), cache.get("h", 480)
+        out_path = self._out_var.get().strip() or "recordings/distorted.mp4"
+        out_dir = os.path.dirname(out_path)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
+
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        writer = cv2.VideoWriter(out_path, fourcc, 30.0, (w, h))
+        if not writer.isOpened():
+            self._log.log(f"[ERROR] VideoWriter 열기 실패: {out_path}")
+            return
+
+        with self._writer_lock:
+            self._writer = writer
+
+        self._recording = True
+        self._rec_btn.configure(state="disabled")
+        self._rec_indicator.configure(text="● 녹화 중")
+        self._log.log(f"[INFO] 녹화 시작 → {out_path}  ({w}×{h})")
+
+    def _stop_preview(self):
+        if not self._running:
+            return
+        self._stop_btn.configure(state="disabled")
+        self._rec_btn.configure(state="disabled")
+        self._log.log("[INFO] 중지 요청 — 현재 프레임 완료 후 종료합니다…")
+        self._stop_flag.set()
+
+    def _on_loop_ended(self):
+        """웹캠 루프 종료 후 GUI 스레드에서 호출."""
+        self._running         = False
+        self._recording       = False
+        self._writer          = None
+        self._preview_pending = False
+        self._start_btn.configure(state="normal")
+        self._stop_btn.configure(state="disabled")
+        self._rec_btn.configure(state="disabled")
+        self._rec_indicator.configure(text="")
+        self._fps_lbl.configure(text="FPS: --")
+        self._preview_lbl.configure(
+            image="",
+            text="미리보기 시작 버튼을 눌러 웹캠을 연결하세요.")
+
+    # ── 웹캠 루프 (백그라운드 스레드) ────────────────────────────────────────
+
+    def _webcam_loop(self, cam_idx: int, out_path: str):
+        log = self._log.log
+        cap = cv2.VideoCapture(cam_idx, cv2.CAP_DSHOW)
+        if not cap.isOpened():
+            log(f"[ERROR] 카메라 인덱스 {cam_idx}를 열 수 없습니다.")
+            self.after(0, self._on_loop_ended)
+            return
+
+        fps_src = cap.get(cv2.CAP_PROP_FPS) or 30.0
+        w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        log(f"[INFO] 웹캠 열림 — 인덱스:{cam_idx}  해상도:{w}×{h}  FPS:{fps_src:.1f}")
+
+        # 디스플레이 크기 계산 (860×440 안에 비율 유지)
+        DISP_W, DISP_H = 860, 440
+        scale  = min(DISP_W / w, DISP_H / h)
+        disp_w = int(w * scale)
+        disp_h = int(h * scale)
+
+        frame_count = 0
+        fps_display = 0.0
+        t_fps = time.perf_counter()
+
+        while not self._stop_flag.is_set():
+            ret, frame = cap.read()
+            if not ret:
+                log("[WARN] 프레임 읽기 실패, 재시도 중…")
+                time.sleep(0.05)
+                continue
+
+            # 왜곡 적용
+            k1 = self._k1_var.get()
+            map_x, map_y = self._build_distortion_map(h, w, k1)
+            distorted = cv2.remap(frame, map_x, map_y,
+                                  cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
+
+            # 녹화
+            with self._writer_lock:
+                if self._writer is not None:
+                    self._writer.write(distorted)
+
+            # FPS 측정 (0.5초 주기)
+            frame_count += 1
+            elapsed = time.perf_counter() - t_fps
+            if elapsed >= 0.5:
+                fps_display = frame_count / elapsed
+                frame_count = 0
+                t_fps = time.perf_counter()
+
+            # 미리보기 업데이트 (큐 포화 방지)
+            if not self._preview_pending:
+                self._preview_pending = True
+                dist_copy = distorted.copy()
+                fps_val   = fps_display
+                self.after(0, lambda f=dist_copy, fps=fps_val:
+                           self._update_preview(f, fps, disp_w, disp_h))
+
+        # 루프 종료 정리
+        cap.release()
+        saved_path = None
+        with self._writer_lock:
+            if self._writer is not None:
+                self._writer.release()
+                self._writer = None
+                saved_path = out_path
+
+        if saved_path:
+            log(f"[OK] 녹화 저장 완료 → {saved_path}")
+            if self._calib_tab is not None:
+                self.after(0, lambda p=saved_path:
+                           self._calib_tab._video_row.var.set(p))
+
+        log("[INFO] 웹캠 루프 종료.")
+        self.after(0, self._on_loop_ended)
+
+    # ── GUI 스레드 전용 업데이트 ──────────────────────────────────────────────
+
+    def _update_preview(self, frame_bgr, fps: float, disp_w: int, disp_h: int):
         try:
-            image = self._generate(cols, rows, square_mm, dpi)
-            cv2.imwrite(out_path, image)
-            self._status.configure(text=f"Saved → {out_path}", text_color="#aaddaa")
-            self._show_preview(image)
-        except Exception as e:
-            messagebox.showerror("Error", str(e))
-
-    def _generate(self, cols, rows, square_mm, dpi):
-        px_per_mm = dpi / 25.4
-        sq_px     = int(round(square_mm * px_per_mm))
-        board_w   = cols * sq_px
-        board_h   = rows * sq_px
-        margin_px = int(round(10 * px_per_mm))
-        a4_short  = int(round(210 * px_per_mm))
-        a4_long   = int(round(297 * px_per_mm))
-
-        if board_w <= a4_short - 2 * margin_px and board_h <= a4_long - 2 * margin_px:
-            a4_w, a4_h = a4_short, a4_long
-        elif board_w <= a4_long - 2 * margin_px and board_h <= a4_short - 2 * margin_px:
-            a4_w, a4_h = a4_long, a4_short
-        else:
-            raise ValueError(
-                f"Pattern ({cols*square_mm:.0f}x{rows*square_mm:.0f} mm) "
-                "does not fit on A4. Reduce square_mm or number of squares."
-            )
-
-        canvas   = np.ones((a4_h, a4_w), dtype=np.uint8) * 255
-        offset_x = (a4_w - board_w) // 2
-        offset_y = (a4_h - board_h) // 2
-
-        for r in range(rows):
-            for c in range(cols):
-                if (r + c) % 2 == 0:
-                    x0 = offset_x + c * sq_px
-                    y0 = offset_y + r * sq_px
-                    canvas[y0:y0 + sq_px, x0:x0 + sq_px] = 0
-
-        cv2.rectangle(canvas, (offset_x - 1, offset_y - 1),
-                      (offset_x + board_w, offset_y + board_h), 0, 2)
-
-        label = (f"Chessboard {cols-1}x{rows-1} inner corners | "
-                 f"Square: {square_mm:.1f} mm | DPI: {dpi}")
-        font_scale = 0.9
-        thickness  = 2
-        font       = cv2.FONT_HERSHEY_SIMPLEX
-        tw, th     = cv2.getTextSize(label, font, font_scale, thickness)[0]
-        tx = (a4_w - tw) // 2
-        ty = offset_y + board_h + int(round(7 * px_per_mm))
-        if ty + th < a4_h:
-            cv2.putText(canvas, label, (tx, ty), font, font_scale, 0, thickness, cv2.LINE_AA)
-
-        return canvas
-
-    def _show_preview(self, gray_image):
-        # Downscale for display
-        bgr = cv2.cvtColor(gray_image, cv2.COLOR_GRAY2BGR)
-        pil = cv2_to_photoimage(bgr, max_w=860, max_h=480)
-        ctk_img = ctk.CTkImage(light_image=pil, dark_image=pil,
-                                size=(pil.width, pil.height))
-        self._preview_lbl.configure(image=ctk_img, text="")
-        self._preview_lbl._image = ctk_img  # prevent GC
+            img = Image.fromarray(cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB))
+            ctk_img = ctk.CTkImage(light_image=img, dark_image=img,
+                                   size=(disp_w, disp_h))
+            self._preview_lbl.configure(image=ctk_img, text="")
+            self._preview_lbl._image = ctk_img  # GC 방지
+            if fps > 0:
+                self._fps_lbl.configure(text=f"FPS: {fps:.1f}")
+        finally:
+            self._preview_pending = False
 
 
 # ── Tab 2: Camera Calibration ─────────────────────────────────────────────────
@@ -372,7 +566,7 @@ class CalibrationTab(ctk.CTkFrame):
         self._save_frames = ctk.BooleanVar(value=True)
         ctk.CTkCheckBox(pg, text="Save detected-corner frames",
                         variable=self._save_frames).grid(
-            row=2, column=0, columnspan=3, padx=0, pady=(4, 0), sticky="w")
+            row=4, column=0, columnspan=3, padx=0, pady=(4, 0), sticky="w")
 
         # Buttons
         btn_row = ctk.CTkFrame(top, fg_color="transparent")
@@ -931,7 +1125,17 @@ class App(ctk.CTk):
         self.title("Camera Calibration Tool")
         self.geometry("1020x820")
         self.minsize(900, 700)
+        self._webcam_tab = None
         self._build()
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    def _on_close(self):
+        """앱 종료 시 웹캠 스레드를 안전하게 정리."""
+        if self._webcam_tab is not None and self._webcam_tab._running:
+            self._webcam_tab._stop_flag.set()
+            if self._webcam_tab._thread:
+                self._webcam_tab._thread.join(timeout=1.0)
+        self.destroy()
 
     def _build(self):
         # Header
@@ -943,7 +1147,7 @@ class App(ctk.CTk):
                      font=("Segoe UI", 17, "bold"),
                      text_color="white").pack(side="left", padx=20)
         ctk.CTkLabel(header,
-                     text="iPhone 15 Pro · OpenCV",
+                     text="Webcam · OpenCV",
                      font=("Segoe UI", 12),
                      text_color=TEXT_DIM).pack(side="right", padx=24)
 
@@ -951,12 +1155,18 @@ class App(ctk.CTk):
         tabs = ctk.CTkTabview(self, corner_radius=0)
         tabs.pack(fill="both", expand=True, padx=0, pady=0)
 
-        tabs.add("🖨  Chessboard")
+        tabs.add("🎥  Webcam Recorder")
         tabs.add("📐  Calibration")
         tabs.add("✨  Correction")
 
-        ChessboardTab(tabs.tab("🖨  Chessboard")).pack(fill="both", expand=True)
-        CalibrationTab(tabs.tab("📐  Calibration")).pack(fill="both", expand=True)
+        # 탭2를 먼저 생성해 탭1에 참조 전달 (녹화 완료 시 경로 자동 입력)
+        calib_tab = CalibrationTab(tabs.tab("📐  Calibration"))
+        calib_tab.pack(fill="both", expand=True)
+
+        self._webcam_tab = WebcamRecorderTab(
+            tabs.tab("🎥  Webcam Recorder"), calib_tab=calib_tab)
+        self._webcam_tab.pack(fill="both", expand=True)
+
         CorrectionTab(tabs.tab("✨  Correction")).pack(fill="both", expand=True)
 
 
