@@ -165,6 +165,10 @@ python distortion_correction.py \
 
 <img width="1345" height="504" alt="image" src="https://github.com/user-attachments/assets/060e2933-7b73-4bb3-ad7f-0b0851515e62" />
 
+
+https://github.com/user-attachments/assets/082410f8-9aa7-44ba-8537-9d8a9cac6a4c
+
+
 유튜브 시연 영상 링크 : [https://www.youtube.com/watch?v=FB89C6G3c58&feature=youtu.be](https://www.youtube.com/watch?v=YVEs10eS0VM)
 
 *좌: 원본 (fisheye 왜곡 적용됨) | 우: 왜곡 교정됨*
