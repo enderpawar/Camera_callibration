@@ -43,6 +43,7 @@ python gui.py
 앱을 실행하면 세 개의 탭이 열립니다.
 
 ### 탭 1 — 웹캠 왜곡 영상 녹화
+<img width="2555" height="1475" alt="image" src="https://github.com/user-attachments/assets/a63be508-fdeb-47f3-8dbb-8b653fcecbdc" />
 
 1. **Camera index** 설정 (노트북 내장 웹캠: 기본값 `0`)
 2. **k1 슬라이더**로 fisheye 왜곡 강도 조절 (0.0 ~ 2.0, 기본값 0.5)
@@ -53,7 +54,7 @@ python gui.py
 > **팁:** 체스보드가 구부러지지 않도록 주의하세요. 아이패드 등 태블릿 화면에 띄우는 것이 가장 편리합니다.
 
 ### 탭 2 — 카메라 보정
-<img width="1531" height="1276" alt="image" src="https://github.com/user-attachments/assets/cf51b58e-434e-4cad-b714-2252da9faccd" />
+<img width="2559" height="1401" alt="image" src="https://github.com/user-attachments/assets/b00fe9ac-054c-41bd-b84e-9aa11fe01c52" />
 
 1. 탭1 녹화 완료 시 영상 경로가 자동으로 입력됨 (또는 **파일 선택…** 으로 직접 선택)
 2. 내부 코너 수(열 × 행), 사각형 크기(mm), 프레임 간격 설정
@@ -64,7 +65,8 @@ python gui.py
 > **팁:** 다양한 각도의 시점을 최소 20개 이상 확보해야 안정적인 결과를 얻을 수 있습니다.
 
 ### 탭 3 — 왜곡 교정
-<img width="1519" height="1259" alt="image" src="https://github.com/user-attachments/assets/2f3d114c-323f-4084-a471-4fc019702bd6" />
+<img width="2543" height="1485" alt="image" src="https://github.com/user-attachments/assets/b74b4205-9a09-42be-82ca-22aec5d917c6" />
+
 
 1. **영상** 또는 **이미지** 모드 선택
 2. **파일 선택…** 클릭하여 입력 파일 선택
@@ -163,7 +165,7 @@ python distortion_correction.py \
 
 <img width="1345" height="504" alt="image" src="https://github.com/user-attachments/assets/060e2933-7b73-4bb3-ad7f-0b0851515e62" />
 
-유튜브 시연 영상 링크 : https://www.youtube.com/watch?v=FB89C6G3c58&feature=youtu.be
+유튜브 시연 영상 링크 : [https://www.youtube.com/watch?v=FB89C6G3c58&feature=youtu.be](https://www.youtube.com/watch?v=YVEs10eS0VM)
 
 *좌: 원본 (fisheye 왜곡 적용됨) | 우: 왜곡 교정됨*
 
