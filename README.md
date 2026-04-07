@@ -53,6 +53,7 @@ python gui.py
 > **팁:** 체스보드가 구부러지지 않도록 주의하세요. 아이패드 등 태블릿 화면에 띄우는 것이 가장 편리합니다.
 
 ### 탭 2 — 카메라 보정
+<img width="1531" height="1276" alt="image" src="https://github.com/user-attachments/assets/cf51b58e-434e-4cad-b714-2252da9faccd" />
 
 1. 탭1 녹화 완료 시 영상 경로가 자동으로 입력됨 (또는 **파일 선택…** 으로 직접 선택)
 2. 내부 코너 수(열 × 행), 사각형 크기(mm), 프레임 간격 설정
@@ -63,6 +64,7 @@ python gui.py
 > **팁:** 다양한 각도의 시점을 최소 20개 이상 확보해야 안정적인 결과를 얻을 수 있습니다.
 
 ### 탭 3 — 왜곡 교정
+<img width="1519" height="1259" alt="image" src="https://github.com/user-attachments/assets/2f3d114c-323f-4084-a471-4fc019702bd6" />
 
 1. **영상** 또는 **이미지** 모드 선택
 2. **파일 선택…** 클릭하여 입력 파일 선택
@@ -159,9 +161,21 @@ python distortion_correction.py \
 
 ## 렌즈 왜곡 교정 데모
 
-![왜곡 교정 비교](results/comparison.jpg)
+<img width="1345" height="504" alt="image" src="https://github.com/user-attachments/assets/060e2933-7b73-4bb3-ad7f-0b0851515e62" />
+
+유튜브 시연 영상 링크 : https://www.youtube.com/watch?v=FB89C6G3c58&feature=youtu.be
 
 *좌: 원본 (fisheye 왜곡 적용됨) | 우: 왜곡 교정됨*
+
+![frame_00875](https://github.com/user-attachments/assets/2f0cab2a-bfe0-478b-bcc6-ae61aa887d6a)
+![frame_00860](https://github.com/user-attachments/assets/3464ce5b-8203-4edb-abef-a51648a24538)
+![frame_00810](https://github.com/user-attachments/assets/9c995277-1c3c-46e2-9eb0-c20dd4bba890)
+![frame_00470](https://github.com/user-attachments/assets/7cbc56d8-0f41-48b4-8517-1c5b129a2e46)
+![frame_00445](https://github.com/user-attachments/assets/5f1933eb-99f5-4629-bc8e-6a038378e340)
+![frame_00425](https://github.com/user-attachments/assets/7b26f5d7-2b6a-48fd-b281-ac85d70fd58e)
+![frame_00330](https://github.com/user-attachments/assets/ef77b345-a2b7-4618-a52e-aafe2c523093)
+![frame_00325](https://github.com/user-attachments/assets/67d82d8c-a3d7-4acc-89f3-6a784ee391aa)
+
 
 ---
 
