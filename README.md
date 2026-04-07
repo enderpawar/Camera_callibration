@@ -181,10 +181,3 @@ python distortion_correction.py \
 ![frame_00325](https://github.com/user-attachments/assets/67d82d8c-a3d7-4acc-89f3-6a784ee391aa)
 
 
----
-
-## 참고 사항
-
-- RMSE < 1.0 px는 일반적으로 허용 가능한 수준이며, < 0.5 px면 우수한 품질입니다.
-- 실제 사용할 해상도와 동일한 해상도로 보정을 수행하십시오.
-- `results/calibration.npz` 파일에 전체 카메라 행렬과 왜곡 계수가 저장되어 재사용할 수 있습니다.
