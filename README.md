@@ -164,18 +164,21 @@ python distortion_correction.py \
 
 ## 렌즈 왜곡 교정 데모
 
-![왜곡 교정 비교](results/comparison.jpg)
+<img width="1345" height="504" alt="image" src="https://github.com/user-attachments/assets/060e2933-7b73-4bb3-ad7f-0b0851515e62" />
 
 유튜브 시연 영상 링크 : https://www.youtube.com/watch?v=FB89C6G3c58&feature=youtu.be
 
 *좌: 원본 (왜곡됨) | 우: 왜곡 교정됨*
-![frame_01000](https://github.com/user-attachments/assets/c5660bf6-8951-4e50-aa8b-b23933ba6324)
-![frame_00885](https://github.com/user-attachments/assets/3c5d65f1-42da-4f06-b796-a31455a6f262)
-![frame_00260](https://github.com/user-attachments/assets/445448e7-9f2d-4914-a5d8-ab98d3f9f3fc)
-![frame_00255](https://github.com/user-attachments/assets/13c73761-4d36-41d1-a545-a3ab8542a227)
-![frame_00135](https://github.com/user-attachments/assets/06d63344-c3f6-458e-a8c6-5a0a631062e6)
-![frame_00100](https://github.com/user-attachments/assets/48f37d85-5d6b-4937-8842-797d08aa98b0)
-![frame_00060](https://github.com/user-attachments/assets/c5ddd30e-2c46-480f-a5f1-e428e2f37be2)
+
+![frame_00875](https://github.com/user-attachments/assets/2f0cab2a-bfe0-478b-bcc6-ae61aa887d6a)
+![frame_00860](https://github.com/user-attachments/assets/3464ce5b-8203-4edb-abef-a51648a24538)
+![frame_00810](https://github.com/user-attachments/assets/9c995277-1c3c-46e2-9eb0-c20dd4bba890)
+![frame_00470](https://github.com/user-attachments/assets/7cbc56d8-0f41-48b4-8517-1c5b129a2e46)
+![frame_00445](https://github.com/user-attachments/assets/5f1933eb-99f5-4629-bc8e-6a038378e340)
+![frame_00425](https://github.com/user-attachments/assets/7b26f5d7-2b6a-48fd-b281-ac85d70fd58e)
+![frame_00330](https://github.com/user-attachments/assets/ef77b345-a2b7-4618-a52e-aafe2c523093)
+![frame_00325](https://github.com/user-attachments/assets/67d82d8c-a3d7-4acc-89f3-6a784ee391aa)
+
 
 ---
 
